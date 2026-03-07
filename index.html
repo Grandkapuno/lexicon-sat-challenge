@@ -1,0 +1,909 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lexicon — SAT Word Challenge</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #f5f0e8;
+    --ink: #1a1612;
+    --ink-soft: #5a5248;
+    --accent: #c8421a;
+    --correct: #2d6a4f;
+    --correct-light: #d8f3dc;
+    --wrong: #c8421a;
+    --wrong-light: #fde8e2;
+    --card: #fffdf8;
+    --border: #d8d0c4;
+    --live: #2d6a4f;
+    --live-bg: #d8f3dc;
+    --local: #7a6030;
+    --local-bg: #fdf3d8;
+  }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    background-image:
+      radial-gradient(circle at 20% 80%, rgba(200,66,26,0.06) 0%, transparent 50%),
+      radial-gradient(circle at 80% 20%, rgba(45,106,79,0.05) 0%, transparent 50%);
+  }
+
+  .container { width: 100%; max-width: 560px; }
+
+  .header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin-bottom: 32px;
+  }
+
+  .logo { font-family: 'Playfair Display', serif; font-size: 1.5rem; letter-spacing: -0.02em; }
+  .logo span { color: var(--accent); font-style: italic; }
+
+  .header-right { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; }
+
+  .score-display {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.8rem;
+    color: var(--ink-soft);
+    letter-spacing: 0.05em;
+  }
+
+  .word-counter {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.7rem;
+    color: var(--ink-soft);
+    opacity: 0.65;
+    letter-spacing: 0.05em;
+  }
+
+  .progress-track {
+    height: 3px;
+    background: var(--border);
+    border-radius: 2px;
+    margin-bottom: 32px;
+    overflow: hidden;
+  }
+
+  .progress-fill {
+    height: 100%;
+    background: var(--accent);
+    border-radius: 2px;
+    transition: width 0.5s cubic-bezier(0.4,0,0.2,1);
+  }
+
+  /* SOURCE BANNER */
+  .source-banner {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    border-radius: 3px 3px 0 0;
+    border: 1px solid var(--border);
+    border-bottom: none;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.68rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    font-weight: 500;
+  }
+  .source-banner.live {
+    background: var(--live-bg);
+    color: var(--live);
+    border-color: rgba(45,106,79,0.25);
+  }
+  .source-banner.local {
+    background: var(--local-bg);
+    color: var(--local);
+    border-color: rgba(122,96,48,0.25);
+  }
+  .source-dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .source-banner.live .source-dot { background: var(--live); }
+  .source-banner.local .source-dot { background: var(--local); }
+
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 0 0 4px 4px;
+    padding: 40px;
+    box-shadow: 0 2px 8px rgba(26,22,18,0.06), 0 1px 2px rgba(26,22,18,0.04);
+    position: relative;
+    overflow: hidden;
+  }
+
+  /* When no banner above, card gets full radius */
+  .card.solo {
+    border-radius: 4px;
+  }
+
+  .card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: var(--accent);
+  }
+
+  .word-number {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.72rem;
+    color: var(--ink-soft);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+  }
+
+  .word {
+    font-family: 'Playfair Display', serif;
+    font-size: 2.6rem;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    line-height: 1;
+    margin-bottom: 8px;
+  }
+
+  .word-meta {
+    font-size: 0.82rem;
+    color: var(--ink-soft);
+    font-style: italic;
+    margin-bottom: 32px;
+    font-family: 'Playfair Display', serif;
+  }
+
+  .options {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+
+  .option {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    padding: 14px 16px;
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    background: transparent;
+    text-align: left;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.9rem;
+    color: var(--ink);
+    line-height: 1.45;
+    width: 100%;
+  }
+
+  .option:hover:not(:disabled):not(.eliminated) {
+    border-color: var(--ink);
+    background: rgba(26,22,18,0.03);
+    transform: translateX(2px);
+  }
+
+  .option-letter {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.72rem;
+    color: var(--ink-soft);
+    min-width: 16px;
+    margin-top: 2px;
+    letter-spacing: 0.05em;
+  }
+
+  .option.correct { border-color: var(--correct); background: var(--correct-light); color: var(--correct); }
+  .option.correct .option-letter { color: var(--correct); }
+
+  .option.eliminated {
+    opacity: 0.45;
+    text-decoration: line-through;
+    cursor: not-allowed;
+    color: #a09888;
+  }
+  .option.eliminated .option-letter { color: #b8b0a8; }
+  .option:disabled { cursor: not-allowed; }
+
+  .attempts-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 20px;
+    margin-bottom: 12px;
+  }
+
+  .attempts-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.67rem;
+    color: var(--ink-soft);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-right: 2px;
+  }
+
+  .attempt-dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--wrong);
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+  .attempt-dot.used { opacity: 1; }
+
+  .feedback {
+    min-height: 22px;
+    font-size: 0.82rem;
+    color: var(--ink-soft);
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: 'DM Mono', monospace;
+  }
+  .feedback.correct-msg { color: var(--correct); }
+  .feedback.wrong-msg { color: var(--wrong); }
+
+  .btn-next {
+    width: 100%;
+    padding: 14px;
+    background: var(--ink);
+    color: var(--bg);
+    border: none;
+    border-radius: 3px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.88rem;
+    font-weight: 500;
+    letter-spacing: 0.04em;
+    cursor: pointer;
+    transition: opacity 0.15s;
+    display: none;
+  }
+  .btn-next:hover { opacity: 0.85; }
+  .btn-next.visible { display: block; }
+
+  .btn-pause {
+    margin-top: 16px;
+    width: 100%;
+    padding: 10px;
+    background: transparent;
+    color: var(--ink-soft);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.75rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .btn-pause:hover { border-color: var(--ink); color: var(--ink); }
+
+  .score-chips { display: flex; gap: 4px; margin-top: 24px; }
+  .chip { height: 6px; border-radius: 3px; background: var(--border); transition: background 0.3s; flex: 1; }
+  .chip.filled { background: var(--accent); }
+
+  /* OVERLAYS */
+  .overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(245,240,232,0.93);
+    backdrop-filter: blur(4px);
+    z-index: 100;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 32px 24px;
+    overflow-y: auto;
+  }
+  .overlay.active { display: flex; }
+
+  .overlay-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 40px;
+    max-width: 480px;
+    width: 100%;
+    text-align: center;
+    box-shadow: 0 8px 32px rgba(26,22,18,0.12);
+    margin: auto;
+  }
+
+  .overlay-title { font-family: 'Playfair Display', serif; font-size: 2rem; font-weight: 700; margin-bottom: 8px; }
+  .overlay-subtitle { font-size: 0.88rem; color: var(--ink-soft); margin-bottom: 20px; line-height: 1.6; }
+
+  .overlay-score { font-family: 'DM Mono', monospace; font-size: 3rem; font-weight: 500; color: var(--accent); line-height: 1; }
+  .overlay-score-label { font-size: 0.72rem; color: var(--ink-soft); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 24px; font-family: 'DM Mono', monospace; margin-top: 4px; }
+
+  .wrong-words-section {
+    text-align: left;
+    border-top: 1px solid var(--border);
+    padding-top: 20px;
+    margin-top: 4px;
+    margin-bottom: 24px;
+  }
+
+  .wrong-words-title {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.68rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+    margin-bottom: 12px;
+  }
+
+  .wrong-word-item { padding: 10px 0; border-bottom: 1px solid var(--border); }
+  .wrong-word-item:last-child { border-bottom: none; }
+  .wrong-word-name { font-family: 'Playfair Display', serif; font-size: 1rem; font-weight: 700; }
+  .wrong-word-pos { font-family: 'DM Sans', sans-serif; font-size: 0.75rem; color: var(--ink-soft); font-weight: 400; font-style: italic; }
+  .wrong-word-def { font-size: 0.82rem; color: var(--ink-soft); margin-top: 3px; line-height: 1.45; }
+  .no-wrong { font-size: 0.85rem; color: var(--correct); font-style: italic; padding: 8px 0; }
+
+  .btn-primary {
+    padding: 13px 28px;
+    background: var(--ink);
+    color: var(--bg);
+    border: none;
+    border-radius: 3px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.88rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: opacity 0.15s;
+    margin: 4px;
+  }
+  .btn-primary:hover { opacity: 0.85; }
+
+  .btn-download {
+    padding: 12px 28px;
+    background: transparent;
+    color: var(--ink);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.75rem;
+    letter-spacing: 0.06em;
+    cursor: pointer;
+    transition: all 0.15s;
+    margin: 4px;
+    text-transform: uppercase;
+  }
+  .btn-download:hover { border-color: var(--ink); }
+
+  .result-emoji { font-size: 2.8rem; margin-bottom: 14px; display: block; }
+
+  /* Loading spinner */
+  .loading-dots span {
+    display: inline-block;
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--accent);
+    margin: 0 3px;
+    animation: pulse 1.2s ease-in-out infinite;
+  }
+  .loading-dots span:nth-child(2) { animation-delay: 0.2s; }
+  .loading-dots span:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes pulse {
+    0%, 80%, 100% { transform: scale(0.7); opacity: 0.4; }
+    40% { transform: scale(1); opacity: 1; }
+  }
+
+  .loading-status {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.75rem;
+    color: var(--ink-soft);
+    margin-top: 16px;
+    letter-spacing: 0.05em;
+    min-height: 20px;
+  }
+
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .card { animation: slideIn 0.3s ease; }
+
+  @keyframes shake {
+    0%,100% { transform: translateX(0); }
+    20% { transform: translateX(-5px); }
+    40% { transform: translateX(5px); }
+    60% { transform: translateX(-3px); }
+    80% { transform: translateX(3px); }
+  }
+  .shake { animation: shake 0.3s ease; }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <div class="header">
+    <div class="logo">Lexi<span>con</span></div>
+    <div class="header-right">
+      <div class="score-display" id="scoreDisplay">SCORE: 0 / 5</div>
+      <div class="word-counter" id="wordCounter">WORD 1 OF 10</div>
+    </div>
+  </div>
+
+  <div class="progress-track">
+    <div class="progress-fill" id="progressFill" style="width:0%"></div>
+  </div>
+
+  <!-- Source banner sits above the card -->
+  <div class="source-banner local" id="sourceBanner">
+    <span class="source-dot"></span>
+    <span id="sourceBannerText">BUILT-IN LIBRARY · 60 words</span>
+  </div>
+
+  <div class="card" id="mainCard">
+    <div class="word-number" id="wordNumber">WORD 1</div>
+    <div class="word" id="wordDisplay">—</div>
+    <div class="word-meta" id="wordMeta">adj.</div>
+
+    <div class="options" id="optionsContainer"></div>
+
+    <div class="attempts-row" id="attemptsRow">
+      <span class="attempts-label" id="attemptsLabel"></span>
+      <span class="attempt-dot" id="dot0"></span>
+      <span class="attempt-dot" id="dot1"></span>
+      <span class="attempt-dot" id="dot2"></span>
+    </div>
+
+    <div class="feedback" id="feedback"></div>
+
+    <button class="btn-next" id="btnNext" onclick="nextWord()">Next Word →</button>
+    <button class="btn-pause" onclick="pauseGame()">⏸ Pause</button>
+
+    <div class="score-chips" id="scoreChips"></div>
+  </div>
+</div>
+
+<!-- Loading Overlay -->
+<div class="overlay active" id="loadingOverlay">
+  <div class="overlay-card">
+    <div class="overlay-title" style="font-size:1.6rem; margin-bottom:16px;">Loading words…</div>
+    <div class="loading-dots"><span></span><span></span><span></span></div>
+    <div class="loading-status" id="loadingStatus">Preparing your word set…</div>
+  </div>
+</div>
+
+<!-- Pause Overlay -->
+<div class="overlay" id="pauseOverlay">
+  <div class="overlay-card">
+    <div class="overlay-title">Paused.</div>
+    <div class="overlay-subtitle">Take a breather. Your progress is saved.</div>
+    <div class="overlay-score" id="pauseScore">0</div>
+    <div class="overlay-score-label">current score</div>
+    <button class="btn-primary" onclick="resumeGame()">Resume</button>
+  </div>
+</div>
+
+<!-- End Game Overlay -->
+<div class="overlay" id="endOverlay">
+  <div class="overlay-card">
+    <span class="result-emoji" id="endEmoji">🎓</span>
+    <div class="overlay-title" id="endTitle">You Win!</div>
+    <div class="overlay-subtitle" id="endSubtitle"></div>
+    <div class="overlay-score" id="endScore">5</div>
+    <div class="overlay-score-label">final score</div>
+
+    <div class="wrong-words-section" id="wrongWordsSection"></div>
+
+    <div>
+      <button class="btn-download" id="downloadBtn" onclick="downloadList()">↓ Download Missed Words</button>
+      <button class="btn-primary" onclick="restartGame()">Play Again</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ─────────────────────────────────────────────
+//  MASTER WORD LIBRARY  (60 words)
+//  Wrong answers are generated dynamically from the pool.
+// ─────────────────────────────────────────────
+const MASTER_WORDS = [
+  { word: "Ameliorate",   pos: "v.",    correct: "To make something bad or unsatisfactory better" },
+  { word: "Ephemeral",    pos: "adj.",  correct: "Lasting for a very short time" },
+  { word: "Equivocate",   pos: "v.",    correct: "To use vague or ambiguous language to avoid commitment" },
+  { word: "Loquacious",   pos: "adj.",  correct: "Tending to talk a great deal; talkative" },
+  { word: "Insipid",      pos: "adj.",  correct: "Lacking vigor or interest; dull and unoriginal" },
+  { word: "Alacrity",     pos: "n.",    correct: "Brisk and cheerful readiness to do something" },
+  { word: "Taciturn",     pos: "adj.",  correct: "Reserved or uncommunicative in speech; saying little" },
+  { word: "Sycophant",    pos: "n.",    correct: "A person who flatters powerful people to gain favor" },
+  { word: "Perfidious",   pos: "adj.",  correct: "Deceitful and untrustworthy; guilty of treachery" },
+  { word: "Magnanimous",  pos: "adj.",  correct: "Very generous or forgiving, especially toward a rival" },
+  { word: "Obsequious",   pos: "adj.",  correct: "Excessively eager to serve or obey; fawning" },
+  { word: "Truculent",    pos: "adj.",  correct: "Eager or quick to argue or fight; aggressively defiant" },
+  { word: "Venerate",     pos: "v.",    correct: "To regard with great respect and reverence" },
+  { word: "Capricious",   pos: "adj.",  correct: "Given to sudden and unaccountable changes of mood or behavior" },
+  { word: "Munificent",   pos: "adj.",  correct: "More generous than is usual or necessary; lavish" },
+  { word: "Pellucid",     pos: "adj.",  correct: "Translucently clear; easily understood" },
+  { word: "Recalcitrant", pos: "adj.",  correct: "Having an obstinately uncooperative attitude toward authority" },
+  { word: "Soporific",    pos: "adj.",  correct: "Tending to induce drowsiness or sleep" },
+  { word: "Temerity",     pos: "n.",    correct: "Excessive confidence or boldness; reckless audacity" },
+  { word: "Vituperate",   pos: "v.",    correct: "To attack or censure someone in strong, violent language" },
+  { word: "Abstruse",     pos: "adj.",  correct: "Difficult to understand; obscure and complex" },
+  { word: "Acrimony",     pos: "n.",    correct: "Bitterness or ill feeling in speech or manner" },
+  { word: "Admonish",     pos: "v.",    correct: "To warn or reprimand someone firmly but kindly" },
+  { word: "Affable",      pos: "adj.",  correct: "Friendly, good-natured, and easy to talk to" },
+  { word: "Anomalous",    pos: "adj.",  correct: "Deviating from what is standard, normal, or expected" },
+  { word: "Antipathy",    pos: "n.",    correct: "A deep-seated feeling of aversion or dislike" },
+  { word: "Arduous",      pos: "adj.",  correct: "Involving or requiring strenuous effort; extremely difficult" },
+  { word: "Austere",      pos: "adj.",  correct: "Severe or strict in manner; having no comforts or luxuries" },
+  { word: "Banal",        pos: "adj.",  correct: "So lacking in originality as to be obvious and boring" },
+  { word: "Beguile",      pos: "v.",    correct: "To charm or enchant someone, sometimes in a deceptive way" },
+  { word: "Cogent",       pos: "adj.",  correct: "Clear, logical, and convincing in argument" },
+  { word: "Copious",      pos: "adj.",  correct: "Abundant in supply or quantity; plentiful" },
+  { word: "Cryptic",      pos: "adj.",  correct: "Having a meaning that is mysterious or obscure" },
+  { word: "Deference",    pos: "n.",    correct: "Humble submission and respect toward another's judgment" },
+  { word: "Denigrate",    pos: "v.",    correct: "To criticize unfairly; disparage or belittle" },
+  { word: "Ebullient",    pos: "adj.",  correct: "Cheerful and full of energy; exuberantly enthusiastic" },
+  { word: "Eclectic",     pos: "adj.",  correct: "Deriving ideas or style from a broad and diverse range of sources" },
+  { word: "Elucidate",    pos: "v.",    correct: "To make something clear by explaining it in detail" },
+  { word: "Enigmatic",    pos: "adj.",  correct: "Difficult to interpret or understand; mysterious" },
+  { word: "Equanimity",   pos: "n.",    correct: "Mental calmness and composure, especially in difficult situations" },
+  { word: "Esoteric",     pos: "adj.",  correct: "Intended for or understood by only a small number of specialists" },
+  { word: "Exacerbate",   pos: "v.",    correct: "To make a problem, bad situation, or negative feeling worse" },
+  { word: "Fervent",      pos: "adj.",  correct: "Having or displaying a passionate intensity of feeling" },
+  { word: "Garrulous",    pos: "adj.",  correct: "Excessively talkative, especially on trivial matters" },
+  { word: "Gregarious",   pos: "adj.",  correct: "Fond of company; sociable and outgoing" },
+  { word: "Guile",        pos: "n.",    correct: "Sly or cunning intelligence used to deceive" },
+  { word: "Hubris",       pos: "n.",    correct: "Excessive pride or dangerous overconfidence" },
+  { word: "Impetuous",    pos: "adj.",  correct: "Acting or done quickly and without thought or care" },
+  { word: "Inscrutable",  pos: "adj.",  correct: "Impossible to understand or interpret; not easily read" },
+  { word: "Intransigent", pos: "adj.",  correct: "Unwilling or refusing to change one's views or to compromise" },
+  { word: "Laconic",      pos: "adj.",  correct: "Using very few words; brief and concise to the point of rudeness" },
+  { word: "Languid",      pos: "adj.",  correct: "Displaying a disinclination for physical exertion; slow and relaxed" },
+  { word: "Largesse",     pos: "n.",    correct: "Generosity in bestowing money or gifts upon others" },
+  { word: "Lugubrious",   pos: "adj.",  correct: "Looking or sounding sad and dismal; mournful" },
+  { word: "Mendacious",   pos: "adj.",  correct: "Not telling the truth; habitually dishonest" },
+  { word: "Mercurial",    pos: "adj.",  correct: "Subject to sudden or unpredictable changes of mood or mind" },
+  { word: "Meticulous",   pos: "adj.",  correct: "Showing great attention to detail; very careful and precise" },
+  { word: "Mitigate",     pos: "v.",    correct: "To make less severe, serious, or painful; to lessen" },
+  { word: "Morose",       pos: "adj.",  correct: "Sullen and ill-tempered; gloomy and unsociable" },
+  { word: "Nefarious",    pos: "adj.",  correct: "Wicked or criminal; flagrantly immoral or villainous" },
+];
+
+const TOTAL_WORDS = 10;
+const WIN_SCORE = 5;
+
+// ─────────────────────────────────────────────
+//  API CONFIG
+// ─────────────────────────────────────────────
+const POS_ABBR = { noun: 'n.', verb: 'v.', adjective: 'adj.', adverb: 'adv.' };
+
+// ─────────────────────────────────────────────
+//  GAME STATE
+// ─────────────────────────────────────────────
+let score = 0;
+let wordIndex = 0;
+let gameWords = [];
+let missedWords = [];
+let wordAnswered = false;
+let wrongOnThisWord = false;
+let eliminatedOptions = new Set();
+let wrongAttempts = 0;
+let usingLiveWords = false;
+
+// ─────────────────────────────────────────────
+//  HELPERS
+// ─────────────────────────────────────────────
+function shuffle(arr) { return [...arr].sort(() => Math.random() - 0.5); }
+function fmt(s) { return s % 1 === 0 ? String(s) : s.toFixed(1); }
+function tick() { return new Promise(r => setTimeout(r, 30)); }
+function setLoadingStatus(msg) {
+  const el = document.getElementById('loadingStatus');
+  if (el) el.textContent = msg;
+}
+
+// ─────────────────────────────────────────────
+//  BUILD GAME FROM MASTER LIBRARY
+//  Picks 10 random words; wrong answers = other definitions from the pool
+// ─────────────────────────────────────────────
+function buildLocalGame() {
+  const shuffled = shuffle(MASTER_WORDS);
+  const picked = shuffled.slice(0, TOTAL_WORDS);
+  const rest = shuffled.slice(TOTAL_WORDS); // remaining 50 words for distractors
+
+  return picked.map((wd, idx) => {
+    // Draw 3 wrong answers from the REST pool (guaranteed different words)
+    const distPool = rest.length >= 3 ? rest : shuffled.filter((_, i) => i !== idx);
+    const wrong = shuffle(distPool).slice(0, 3).map(w => w.correct);
+    return { ...wd, wrong };
+  });
+}
+
+// ─────────────────────────────────────────────
+//  API FETCH  (best-effort; falls back to local)
+// ─────────────────────────────────────────────
+function fetchWithTimeout(url, ms) {
+  const controller = new AbortController();
+  const id = setTimeout(() => controller.abort(), ms);
+  return fetch(url, { signal: controller.signal }).finally(() => clearTimeout(id));
+}
+
+async function fetchWordEntry(word) {
+  try {
+    const res = await fetchWithTimeout(
+      `https://api.dictionaryapi.dev/api/v2/entries/en/${encodeURIComponent(word)}`, 6000
+    );
+    if (!res.ok) return null;
+    const json = await res.json();
+    if (!Array.isArray(json) || !json.length) return null;
+    const entry = json[0];
+    const wLower = word.toLowerCase();
+    for (const meaning of entry.meanings) {
+      const posAbbr = POS_ABBR[meaning.partOfSpeech] || (meaning.partOfSpeech + '.');
+      for (const defObj of meaning.definitions) {
+        const raw = (defObj.definition || '').trim();
+        if (raw.length >= 15 && raw.length <= 220 &&
+            !raw.toLowerCase().includes(wLower) && !raw.startsWith('(')) {
+          return {
+            word: entry.word.charAt(0).toUpperCase() + entry.word.slice(1),
+            pos: posAbbr,
+            correct: raw.charAt(0).toUpperCase() + raw.slice(1).replace(/\.$/, '')
+          };
+        }
+      }
+    }
+    return null;
+  } catch { return null; }
+}
+
+// Extra words only used when API is available (supplements MASTER_WORDS pool)
+const EXTRA_API_WORDS = [
+  "abstruse","acrimony","admonish","affable","anomalous","antipathy","arduous","austere",
+  "banal","beguile","cogent","copious","cryptic","deference","denigrate","ebullient",
+  "eclectic","elucidate","enigmatic","equanimity","esoteric","exacerbate","fervent",
+  "garrulous","gregarious","guile","hubris","impetuous","inscrutable","intransigent",
+  "laconic","languid","largesse","lugubrious","mendacious","mercurial","meticulous",
+  "mitigate","morose","nefarious","obdurate","onerous","ostentatious","paucity",
+  "pedantic","pernicious","placate","pragmatic","prevaricate","probity","proclivity",
+  "prolific","propitious","querulous","rancorous","repudiate","reticent","sagacious",
+  "sanguine","sardonic","sedulous","specious","spurious","stoic","supercilious",
+  "surreptitious","tenacious","torpid","vacuous","vehement","verbose","vindictive",
+  "virulent","vociferous","zealous","parsimonious","timorous","turbid","laud",
+  "impudent","inchoate","inimical","enervate","ennui","lethargic","solicitous"
+];
+
+async function tryLoadLiveWords() {
+  setLoadingStatus('Checking dictionary API…');
+  await tick();
+  try {
+    // Quick probe
+    const probe = await fetchWithTimeout('https://api.dictionaryapi.dev/api/v2/entries/en/vivid', 4000);
+    if (!probe.ok) return null;
+  } catch { return null; }
+
+  // API is reachable — fetch a fresh batch
+  const candidates = shuffle(EXTRA_API_WORDS).slice(0, 22);
+  setLoadingStatus(`Fetching ${candidates.length} live definitions…`);
+  let done = 0;
+  const results = await Promise.all(
+    candidates.map(w => fetchWordEntry(w).then(r => { done++; setLoadingStatus(`Fetched ${done}/${candidates.length}…`); return r; }))
+  );
+  const valid = results.filter(Boolean);
+  if (valid.length < TOTAL_WORDS) return null;
+
+  const game = valid.slice(0, TOTAL_WORDS);
+  const dist  = valid.slice(TOTAL_WORDS);
+  return game.map((wd, i) => {
+    const others = [...dist, ...game.filter((_, j) => j !== i)];
+    return { ...wd, wrong: shuffle(others).slice(0, 3).map(o => o.correct) };
+  });
+}
+
+// ─────────────────────────────────────────────
+//  BANNER
+// ─────────────────────────────────────────────
+function setBanner(live) {
+  const banner = document.getElementById('sourceBanner');
+  const text   = document.getElementById('sourceBannerText');
+  if (live) {
+    banner.className = 'source-banner live';
+    text.textContent = 'LIVE · Fresh from dictionary API';
+  } else {
+    banner.className = 'source-banner local';
+    text.textContent = `LIBRARY · Shuffled from ${MASTER_WORDS.length} built-in words`;
+  }
+}
+
+// ─────────────────────────────────────────────
+//  INIT
+// ─────────────────────────────────────────────
+async function initGame() {
+  score = 0; wordIndex = 0; missedWords = [];
+  usingLiveWords = false;
+  document.getElementById('loadingOverlay').classList.add('active');
+  document.getElementById('endOverlay').classList.remove('active');
+
+  setLoadingStatus('Preparing your word set…');
+  await tick();
+
+  // Try live API first; silently fall back to local library
+  const live = await tryLoadLiveWords();
+
+  if (live) {
+    gameWords = live;
+    usingLiveWords = true;
+    setLoadingStatus('Live words loaded!');
+  } else {
+    setLoadingStatus(`Shuffling ${MASTER_WORDS.length}-word library…`);
+    await tick();
+    gameWords = buildLocalGame();
+    usingLiveWords = false;
+  }
+
+  setBanner(usingLiveWords);
+  await new Promise(r => setTimeout(r, 280));
+  document.getElementById('loadingOverlay').classList.remove('active');
+  updateUI();
+  renderChips();
+  loadWord();
+}
+
+// ─────────────────────────────────────────────
+//  WORD RENDER
+// ─────────────────────────────────────────────
+function loadWord() {
+  wordAnswered = false; wrongOnThisWord = false;
+  eliminatedOptions = new Set(); wrongAttempts = 0;
+  const data = gameWords[wordIndex];
+  document.getElementById('wordNumber').textContent = `WORD ${wordIndex + 1}`;
+  document.getElementById('wordCounter').textContent = `WORD ${wordIndex + 1} OF ${TOTAL_WORDS}`;
+  document.getElementById('wordDisplay').textContent = data.word;
+  document.getElementById('wordMeta').textContent = data.pos;
+  document.getElementById('feedback').textContent = '';
+  document.getElementById('feedback').className = 'feedback';
+  document.getElementById('btnNext').classList.remove('visible');
+  document.getElementById('attemptsLabel').textContent = '';
+  for (let i = 0; i < 3; i++) document.getElementById(`dot${i}`).classList.remove('used');
+  renderOptions();
+  updateUI();
+}
+
+function renderOptions() {
+  const data = gameWords[wordIndex];
+  const options = shuffle([data.correct, ...data.wrong]);
+  const letters = ['A','B','C','D'];
+  const container = document.getElementById('optionsContainer');
+  container.innerHTML = '';
+  options.forEach((opt, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'option';
+    btn.dataset.val = opt;
+    btn.innerHTML = `<span class="option-letter">${letters[i]}</span><span>${opt}</span>`;
+    if (eliminatedOptions.has(opt)) { btn.classList.add('eliminated'); btn.disabled = true; }
+    btn.onclick = () => selectAnswer(btn, opt === data.correct, data);
+    container.appendChild(btn);
+  });
+}
+
+function selectAnswer(btn, isCorrect, data) {
+  if (wordAnswered || btn.disabled) return;
+  if (isCorrect) {
+    wordAnswered = true;
+    btn.classList.add('correct');
+    document.querySelectorAll('.option').forEach(b => b.disabled = true);
+    score += 1;
+    const fb = document.getElementById('feedback');
+    fb.textContent = wrongOnThisWord ? `✓ Got it! +1 point (took ${wrongAttempts + 1} tries)` : '✓ Correct! +1 point';
+    fb.className = 'feedback correct-msg';
+    updateUI(); renderChips();
+    document.getElementById('btnNext').classList.add('visible');
+    if (score >= WIN_SCORE) { setTimeout(showEnd, 600); return; }
+    if (wordIndex === TOTAL_WORDS - 1) { setTimeout(showEnd, 600); }
+  } else {
+    wrongAttempts++;
+    if (!wrongOnThisWord) { wrongOnThisWord = true; missedWords.push(data); }
+    score = Math.round((score - 0.5) * 10) / 10;
+    updateUI(); renderChips();
+    const dot = document.getElementById(`dot${wrongAttempts - 1}`);
+    if (dot) dot.classList.add('used');
+    document.getElementById('attemptsLabel').textContent = 'MISSES:';
+    btn.classList.add('shake');
+    setTimeout(() => btn.classList.remove('shake'), 350);
+    eliminatedOptions.add(btn.dataset.val);
+    btn.classList.add('eliminated');
+    btn.disabled = true;
+    const left = document.querySelectorAll('.option:not(:disabled)').length;
+    const fb = document.getElementById('feedback');
+    fb.textContent = left > 1 ? `✗ Not quite — try again! (${left} options left)` : '✗ Not quite — one option left!';
+    fb.className = 'feedback wrong-msg';
+  }
+}
+
+function nextWord() {
+  wordIndex++;
+  if (wordIndex >= TOTAL_WORDS) showEnd();
+  else loadWord();
+}
+
+// ─────────────────────────────────────────────
+//  END SCREEN
+// ─────────────────────────────────────────────
+function showEnd() {
+  const won = score >= WIN_SCORE;
+  document.getElementById('endEmoji').textContent = won ? '🎓' : '📖';
+  document.getElementById('endTitle').textContent = won ? 'You Win!' : 'Game Over';
+  document.getElementById('endSubtitle').textContent = won
+    ? `You reached ${WIN_SCORE} points — your vocabulary is SAT-ready!`
+    : `You finished ${TOTAL_WORDS} words with ${fmt(score)} points. Keep studying!`;
+  document.getElementById('endScore').textContent = fmt(score);
+
+  const seen = new Set();
+  const unique = missedWords.filter(w => { if (seen.has(w.word)) return false; seen.add(w.word); return true; });
+  const section = document.getElementById('wrongWordsSection');
+  section.innerHTML = `<div class="wrong-words-title">Words to Review (${unique.length})</div>`;
+  if (unique.length === 0) {
+    section.innerHTML += `<div class="no-wrong">No missed words — perfect round! 🌟</div>`;
+    document.getElementById('downloadBtn').style.display = 'none';
+  } else {
+    unique.forEach(w => {
+      section.innerHTML += `
+        <div class="wrong-word-item">
+          <div class="wrong-word-name">${w.word} <span class="wrong-word-pos">${w.pos}</span></div>
+          <div class="wrong-word-def">${w.correct}</div>
+        </div>`;
+    });
+    document.getElementById('downloadBtn').style.display = 'inline-block';
+  }
+  document.getElementById('endOverlay').classList.add('active');
+}
+
+function downloadList() {
+  const seen = new Set();
+  const unique = missedWords.filter(w => { if (seen.has(w.word)) return false; seen.add(w.word); return true; });
+  if (!unique.length) return;
+  let txt = `LEXICON — SAT WORDS TO REVIEW\n${'─'.repeat(36)}\n\n`;
+  unique.forEach((w, i) => { txt += `${i+1}. ${w.word} (${w.pos})\n   ${w.correct}\n\n`; });
+  txt += `Generated by Lexicon SAT Challenge`;
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([txt], { type: 'text/plain' }));
+  a.download = 'lexicon-missed-words.txt';
+  a.click();
+}
+
+// ─────────────────────────────────────────────
+//  UI HELPERS
+// ─────────────────────────────────────────────
+function updateUI() {
+  document.getElementById('scoreDisplay').textContent = `SCORE: ${fmt(score)} / ${WIN_SCORE}`;
+  document.getElementById('pauseScore').textContent = fmt(score);
+  const pct = Math.max(0, Math.min(100, (score / WIN_SCORE) * 100));
+  document.getElementById('progressFill').style.width = pct + '%';
+}
+
+function renderChips() {
+  const c = document.getElementById('scoreChips');
+  c.innerHTML = '';
+  for (let i = 0; i < WIN_SCORE; i++) {
+    const ch = document.createElement('div');
+    ch.className = 'chip' + (score >= i + 1 ? ' filled' : '');
+    c.appendChild(ch);
+  }
+}
+
+function pauseGame() { document.getElementById('pauseOverlay').classList.add('active'); }
+function resumeGame() { document.getElementById('pauseOverlay').classList.remove('active'); }
+async function restartGame() {
+  document.getElementById('endOverlay').classList.remove('active');
+  await initGame();
+}
+
+initGame();
+</script>
+</body>
+</html>
