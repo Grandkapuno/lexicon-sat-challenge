@@ -274,8 +274,8 @@
   .btn-next:hover { opacity: 0.85; }
   .btn-next.visible { display: block; }
 
-  .btn-pause, .btn-skip {
-    margin-top: 16px;
+  .btn-skip {
+    margin-top: 8px;
     width: 100%;
     padding: 10px;
     background: transparent;
@@ -289,8 +289,7 @@
     cursor: pointer;
     transition: all 0.15s;
   }
-  .btn-pause:hover, .btn-skip:hover { border-color: var(--ink); color: var(--ink); }
-  .btn-skip { margin-top: 8px; }
+  .btn-skip:hover { border-color: var(--ink); color: var(--ink); }
   .btn-skip.hidden { display: none; }
 
   .score-chips { display: flex; gap: 4px; margin-top: 24px; }
@@ -426,6 +425,50 @@
     80% { transform: translateX(3px); }
   }
   .shake { animation: shake 0.3s ease; }
+
+  /* WELCOME OVERLAY */
+  .rules-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin: 20px 0 28px;
+    text-align: left;
+  }
+  .rule-item {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 12px 14px;
+  }
+  .rule-value {
+    font-family: 'DM Mono', monospace;
+    font-size: 1rem;
+    font-weight: 500;
+    margin-bottom: 3px;
+  }
+  .rule-value.pos { color: var(--correct); }
+  .rule-value.neg { color: var(--wrong); }
+  .rule-label {
+    font-size: 0.75rem;
+    color: var(--ink-soft);
+    line-height: 1.35;
+  }
+  .welcome-goal {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.72rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 10px 14px;
+    margin-bottom: 28px;
+  }
+  .welcome-goal strong {
+    color: var(--accent);
+    font-weight: 500;
+  }
 </style>
 </head>
 <body>
@@ -466,10 +509,40 @@
     <div class="feedback" id="feedback"></div>
 
     <button class="btn-next" id="btnNext" onclick="nextWord()">Next Word →</button>
-    <button class="btn-pause" onclick="pauseGame()">⏸ Pause</button>
     <button class="btn-skip" id="btnSkip" onclick="skipWord()">Skip Word (−1 pt)</button>
 
     <div class="score-chips" id="scoreChips"></div>
+  </div>
+</div>
+
+<!-- Welcome Overlay -->
+<div class="overlay active" id="welcomeOverlay">
+  <div class="overlay-card">
+    <div class="overlay-title">Lexi<span style="color:var(--accent);font-style:italic">con</span></div>
+    <div class="overlay-subtitle">A vocabulary quiz for SAT prep. Match each word to its correct definition before the options run out.</div>
+
+    <div class="rules-grid">
+      <div class="rule-item">
+        <div class="rule-value pos">+1 pt</div>
+        <div class="rule-label">Correct answer</div>
+      </div>
+      <div class="rule-item">
+        <div class="rule-value neg">−0.5 pt</div>
+        <div class="rule-label">Wrong guess<br>(try again)</div>
+      </div>
+      <div class="rule-item">
+        <div class="rule-value neg">−1 pt</div>
+        <div class="rule-label">Skip word</div>
+      </div>
+      <div class="rule-item">
+        <div class="rule-value" style="color:var(--ink)">10 words</div>
+        <div class="rule-label">Per round</div>
+      </div>
+    </div>
+
+    <div class="welcome-goal">Goal: reach <strong>5 points</strong> to win</div>
+
+    <button class="btn-primary" style="width:100%;padding:14px;font-size:0.95rem;" onclick="startGame()">Start Game →</button>
   </div>
 </div>
 
@@ -479,17 +552,6 @@
     <div class="overlay-title" style="font-size:1.6rem; margin-bottom:16px;">Loading words…</div>
     <div class="loading-dots"><span></span><span></span><span></span></div>
     <div class="loading-status" id="loadingStatus">Preparing your word set…</div>
-  </div>
-</div>
-
-<!-- Pause Overlay -->
-<div class="overlay" id="pauseOverlay">
-  <div class="overlay-card">
-    <div class="overlay-title">Paused.</div>
-    <div class="overlay-subtitle">Take a breather. Your progress is saved.</div>
-    <div class="overlay-score" id="pauseScore">0</div>
-    <div class="overlay-score-label">current score</div>
-    <button class="btn-primary" onclick="resumeGame()">Resume</button>
   </div>
 </div>
 
@@ -895,7 +957,6 @@ function downloadList() {
 // ─────────────────────────────────────────────
 function updateUI() {
   document.getElementById('scoreDisplay').textContent = `SCORE: ${fmt(score)} / ${WIN_SCORE}`;
-  document.getElementById('pauseScore').textContent = fmt(score);
   const pct = Math.max(0, Math.min(100, (score / WIN_SCORE) * 100));
   document.getElementById('progressFill').style.width = pct + '%';
 }
@@ -910,14 +971,16 @@ function renderChips() {
   }
 }
 
-function pauseGame() { document.getElementById('pauseOverlay').classList.add('active'); }
-function resumeGame() { document.getElementById('pauseOverlay').classList.remove('active'); }
+function startGame() {
+  document.getElementById('welcomeOverlay').classList.remove('active');
+  initGame();
+}
+
 async function restartGame() {
   document.getElementById('endOverlay').classList.remove('active');
   await initGame();
 }
 
-initGame();
 </script>
 </body>
 </html>
