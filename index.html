@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Lexicon — SAT Word Challenge</title>
+<title>WordKapuno — SAT Word Challenge</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -125,17 +125,30 @@
     background: var(--accent);
   }
 
+  .card-header-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+  }
   .word-number {
     font-family: 'DM Mono', monospace;
     font-size: 0.72rem;
     color: var(--ink-soft);
     letter-spacing: 0.12em;
     text-transform: uppercase;
-    margin-bottom: 12px;
   }
+  .card-score {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.72rem;
+    color: var(--ink-soft);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  .card-score .score-val { color: var(--accent); font-weight: 500; }
 
   .word {
-    font-family: 'Playfair Display', serif;
+    font-family: 'DM Sans', sans-serif;
     font-size: 2.6rem;
     font-weight: 700;
     letter-spacing: -0.03em;
@@ -280,7 +293,7 @@
 
   .score-chips { display: flex; gap: 4px; margin-top: 24px; }
   .chip { height: 6px; border-radius: 3px; background: var(--border); transition: background 0.3s; flex: 1; }
-  .chip.filled { background: var(--accent); }
+  .chip.filled { background: var(--correct); }
 
   /* OVERLAYS */
   .overlay {
@@ -521,30 +534,31 @@
     display: flex;
     align-items: flex-start;
     gap: 14px;
-    padding: 12px 16px;
-    border: 1px dashed var(--border);
+    padding: 14px 16px;
+    border: 1px solid var(--border);
     border-radius: 3px;
     cursor: pointer;
     transition: all 0.15s ease;
     background: transparent;
     text-align: left;
     font-family: 'DM Sans', sans-serif;
-    font-size: 0.85rem;
+    font-size: 0.9rem;
     color: var(--ink-soft);
     line-height: 1.45;
     width: 100%;
-    margin-top: 6px;
   }
   .option-skip:hover:not(.hidden) {
     border-color: var(--ink-soft);
     color: var(--ink);
+    transform: translateX(2px);
   }
   .option-skip .option-letter {
     font-family: 'DM Mono', monospace;
     font-size: 0.72rem;
-    color: var(--border);
+    color: var(--ink-soft);
     min-width: 16px;
     margin-top: 2px;
+    opacity: 0.5;
   }
   .option-skip.hidden { display: none !important; }
 </style>
@@ -553,29 +567,22 @@
 
 <div class="container">
   <div class="header">
-    <div class="logo">Lexi<span>con</span></div>
-    <div class="header-right">
-      <div class="score-display" id="scoreDisplay"><span class="score-val">0</span><span class="score-sep">/</span><span class="score-max">5</span></div>
-    </div>
-  </div>
-
-  <div class="progress-track">
-    <div class="progress-fill" id="progressFill" style="width:0%"></div>
-  </div>
-
-  <!-- Source banner sits above the card -->
-  <div class="source-banner local" id="sourceBanner">
-    <span class="source-dot"></span>
-    <span id="sourceBannerText">BUILT-IN LIBRARY · 60 words</span>
+    <div class="logo">Word<span>Kapuno</span></div>
   </div>
 
   <div class="card" id="mainCard">
-    <div class="word-number" id="wordNumber">WORD 1 OF 10</div>
+    <div class="card-header-row">
+      <div class="word-number" id="wordNumber">WORD 1 OF 10</div>
+      <div class="card-score">SCORE <span class="score-val" id="scoreDisplay">0</span> / 5</div>
+    </div>
     <div class="word" id="wordDisplay">—</div>
     <div class="word-meta" id="wordMeta">adj.</div>
 
     <div class="options-label">Pick the correct definition</div>
     <div class="options" id="optionsContainer"></div>
+    <button class="option-skip" id="btnSkip" onclick="skipWord()">
+      <span class="option-letter">—</span><span>Skip this word <span style="font-size:0.75rem;opacity:0.7">(−1 pt)</span></span>
+    </button>
 
     <div class="attempts-row" id="attemptsRow">
       <span class="attempts-label" id="attemptsLabel"></span>
@@ -587,9 +594,6 @@
     <div class="feedback" id="feedback"></div>
 
     <button class="btn-next" id="btnNext" onclick="nextWord()">Next Word →</button>
-    <button class="option-skip" id="btnSkip" onclick="skipWord()">
-      <span class="option-letter">—</span><span>Skip this word <span style="font-size:0.75rem;opacity:0.7">(−1 pt)</span></span>
-    </button>
 
     <div class="score-chips" id="scoreChips"></div>
   </div>
@@ -598,7 +602,7 @@
 <!-- Welcome Overlay -->
 <div class="overlay active" id="welcomeOverlay">
   <div class="overlay-card">
-    <div class="overlay-title">Lexi<span style="color:var(--accent);font-style:italic">con</span></div>
+    <div class="overlay-title">Word<span style="color:var(--accent);font-style:italic">Kapuno</span></div>
     <div class="overlay-subtitle">A vocabulary quiz for SAT prep.</div>
 
     <div class="how-to-play">
@@ -903,7 +907,6 @@ async function initGame() {
     usingLiveWords = false;
   }
 
-  setBanner(usingLiveWords);
   await new Promise(r => setTimeout(r, 280));
   document.getElementById('loadingOverlay').classList.remove('active');
   updateUI();
@@ -1047,10 +1050,7 @@ function downloadList() {
 //  UI HELPERS
 // ─────────────────────────────────────────────
 function updateUI() {
-  const sd = document.getElementById('scoreDisplay');
-  sd.innerHTML = `<span class="score-val">${fmt(score)}</span><span class="score-sep">/</span><span class="score-max">${WIN_SCORE}</span>`;
-  const pct = Math.max(0, Math.min(100, (score / WIN_SCORE) * 100));
-  document.getElementById('progressFill').style.width = pct + '%';
+  document.getElementById('scoreDisplay').textContent = fmt(score);
 }
 
 function renderChips() {
