@@ -274,7 +274,7 @@
   .btn-next:hover { opacity: 0.85; }
   .btn-next.visible { display: block; }
 
-  .btn-pause {
+  .btn-pause, .btn-skip {
     margin-top: 16px;
     width: 100%;
     padding: 10px;
@@ -289,7 +289,9 @@
     cursor: pointer;
     transition: all 0.15s;
   }
-  .btn-pause:hover { border-color: var(--ink); color: var(--ink); }
+  .btn-pause:hover, .btn-skip:hover { border-color: var(--ink); color: var(--ink); }
+  .btn-skip { margin-top: 8px; }
+  .btn-skip.hidden { display: none; }
 
   .score-chips { display: flex; gap: 4px; margin-top: 24px; }
   .chip { height: 6px; border-radius: 3px; background: var(--border); transition: background 0.3s; flex: 1; }
@@ -465,6 +467,7 @@
 
     <button class="btn-next" id="btnNext" onclick="nextWord()">Next Word →</button>
     <button class="btn-pause" onclick="pauseGame()">⏸ Pause</button>
+    <button class="btn-skip" id="btnSkip" onclick="skipWord()">Skip Word (−1 pt)</button>
 
     <div class="score-chips" id="scoreChips"></div>
   </div>
@@ -768,6 +771,7 @@ function loadWord() {
   document.getElementById('feedback').textContent = '';
   document.getElementById('feedback').className = 'feedback';
   document.getElementById('btnNext').classList.remove('visible');
+  document.getElementById('btnSkip').classList.remove('hidden');
   document.getElementById('attemptsLabel').textContent = '';
   for (let i = 0; i < 3; i++) document.getElementById(`dot${i}`).classList.remove('used');
   renderOptions();
@@ -803,6 +807,7 @@ function selectAnswer(btn, isCorrect, data) {
     fb.className = 'feedback correct-msg';
     updateUI(); renderChips();
     document.getElementById('btnNext').classList.add('visible');
+    document.getElementById('btnSkip').classList.add('hidden');
     if (score >= WIN_SCORE) { setTimeout(showEnd, 600); return; }
     if (wordIndex === TOTAL_WORDS - 1) { setTimeout(showEnd, 600); }
   } else {
@@ -829,6 +834,15 @@ function nextWord() {
   wordIndex++;
   if (wordIndex >= TOTAL_WORDS) showEnd();
   else loadWord();
+}
+
+function skipWord() {
+  if (wordAnswered) return;
+  const data = gameWords[wordIndex];
+  if (!missedWords.some(w => w.word === data.word)) missedWords.push(data);
+  score = Math.round((score - 1) * 10) / 10;
+  updateUI(); renderChips();
+  nextWord();
 }
 
 // ─────────────────────────────────────────────
